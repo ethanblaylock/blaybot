@@ -14,7 +14,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*launch.[pxy][yma]*'))),
     ],
-    install_requires=['setuptools', 'sensor_msgs', 'rclpy', 'std_msgs'],
+    install_requires=['setuptools', 'sensor_msgs', 'rclpy', 'std_msgs', 'robot_msgs'],
     zip_safe=True,
     maintainer='base',
     maintainer_email='ethan.blaylock37@gmail.com',
@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'drive_node = mobility.drive_node:main',
+            'joystick_node = mobility.joystick_node:main',
         ],
     },
 

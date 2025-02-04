@@ -1,18 +1,18 @@
 import rclpy
 from rclpy.node import Node
 
-from sensor_msgs.msg import Joy
+from robot_msgs.msg import Xbox
 
 
 class DriveNode(Node):
 
     def __init__(self):
         super().__init__('drive_node')
-        self.joy_subscription = self.create_subscription(Joy, '/joy', self.joy_callback, 10)
+        self.xbox_subscription = self.create_subscription(Xbox, '/xbox', self.xbox_callback, 10)
 
 
-    def joy_callback(self, msg):
-        self.get_logger().info('Received Joy message: %s' % msg)
+    def xbox_callback(self, msg):
+        self.get_logger().info('Received Xbox message: %s' % msg)
 
 
 def main(args=None):
