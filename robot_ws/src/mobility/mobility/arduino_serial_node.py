@@ -22,7 +22,7 @@ class ArduinoSerialNode(Node):
     def motor_command_callback(self, msg):
         
         if self.ser is not None:
-            command = msg.data.strip() + '\n'  # Ensure newline termination
+            command = str(msg.left_forward) + ',' + str(msg.left_reverse) + ',' + str(msg.right_forward) + ',' + str(msg.right_reverse) + '\n'
             try:
                 self.ser.write(command.encode('utf-8'))
                 self.get_logger().info(f'Sent command to Arduino: {command}')

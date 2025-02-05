@@ -25,6 +25,7 @@ setup(
         'console_scripts': [
             'drive_node = mobility.drive_node:main',
             'joystick_node = mobility.joystick_node:main',
+            'arduino_serial_node = mobility.arduino_serial_node:main',
         ],
     },
 
