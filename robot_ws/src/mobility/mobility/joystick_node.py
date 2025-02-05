@@ -19,27 +19,27 @@ class JoystickNode(Node):
         xbox_msg = Xbox()
 
         # Assign values from Joy axes to Xbox message
-        xbox_msg.L_STICK_LR = msg.axes[0]
-        xbox_msg.L_STICK_UD = msg.axes[1]
-        xbox_msg.L_TRIGGER = msg.axes[2]
-        xbox_msg.R_STICK_LR = msg.axes[3]
-        xbox_msg.R_STICK_UD = msg.axes[4]
-        xbox_msg.R_TRIGGER = msg.axes[5]
-        xbox_msg.D_PAD_LR = msg.axes[6]
-        xbox_msg.D_PAD_UD = msg.axes[7]
+        xbox_msg.l_stick_lr= msg.axes[0]
+        xbox_msg.l_stick_ud = msg.axes[1]
+        xbox_msg.l_trigger = msg.axes[2]
+        xbox_msg.r_stick_lr = msg.axes[3]
+        xbox_msg.r_stick_ud = msg.axes[4]
+        xbox_msg.r_trigger = msg.axes[5]
+        xbox_msg.d_pad_lr = msg.axes[6]
+        xbox_msg.d_pad_ud = msg.axes[7]
 
         # Assign values from Joy buttons to Xbox message
-        xbox_msg.A = msg.buttons[0]
-        xbox_msg.B = msg.buttons[1]
-        xbox_msg.X = msg.buttons[2]
-        xbox_msg.Y = msg.buttons[3]
-        xbox_msg.L_BUMPER = msg.buttons[4]
-        xbox_msg.R_BUMPER = msg.buttons[5]
-        xbox_msg.BACK = msg.buttons[6]
-        xbox_msg.START = msg.buttons[7]
-        xbox_msg.XBOX = msg.buttons[8]
-        xbox_msg.L_STICK_PRESS = msg.buttons[9]
-        xbox_msg.R_STICK_PRESS = msg.buttons[10]
+        xbox_msg.a = msg.buttons[0]
+        xbox_msg.b = msg.buttons[1]
+        xbox_msg.x = msg.buttons[2]
+        xbox_msg.y = msg.buttons[3]
+        xbox_msg.l_bumper = msg.buttons[4]
+        xbox_msg.r_bumper = msg.buttons[5]
+        xbox_msg.back = msg.buttons[6]
+        xbox_msg.start = msg.buttons[7]
+        xbox_msg.xbox= msg.buttons[8]
+        xbox_msg.l_stick_press = msg.buttons[9]
+        xbox_msg.r_stick_press = msg.buttons[10]
 
         # Publish Xbox message
         self.xbox_publisher.publish(xbox_msg)

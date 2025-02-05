@@ -20,8 +20,8 @@ def generate_launch_description():
         # Start drive_node
         Node(
             package='mobility',  
-            executable='drive_node',  # Adjust this to your node's executable
-            name='drive_node',
+            executable='joystick_node',  # Adjust this to your node's executable
+            name='joystick_node',
             output='screen',
         ),
 
