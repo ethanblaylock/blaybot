@@ -8,11 +8,12 @@ int32 x
 int32 y
 int32 l_bumper
 int32 r_bumper
-int32 back
-int32 start
+int32 view
+int32 menu
 int32 xbox
 int32 l_stick_press
 int32 r_stick_press
+int32 share
 
 # Axes
 float32 l_stick_lr
