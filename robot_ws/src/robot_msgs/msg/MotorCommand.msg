@@ -1,5 +1,5 @@
-int32 left_front_wheel
-int32 left_back_wheel
-int32 right_front_wheel
-int32 right_back_wheel
+int32 left_forward
+int32 left_reverse
+int32 right_forward
+int32 right_reverse
 

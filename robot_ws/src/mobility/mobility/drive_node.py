@@ -2,18 +2,37 @@ import rclpy
 from rclpy.node import Node
 
 from robot_msgs.msg import Xbox
+from robot_msgs.msg import MotorCommand
 
+import parameters as p
 
 class DriveNode(Node):
-
+    
     def __init__(self):
         super().__init__('drive_node')
         self.xbox_subscription = self.create_subscription(Xbox, '/xbox', self.xbox_callback, 10)
 
+        self.motor_command_publisher = self.create_publisher(MotorCommand, '/motor_command', 10)
 
     def xbox_callback(self, msg):
-        self.get_logger().info('Received Xbox message: %s' % msg)
-
+        
+        motor_command_msg = MotorCommand()
+        if msg.l_stick_ud > 0:
+            motor_command_msg.left_forward = int(msg.l_stick_ud*p.MAX_PWM_COUNTS)
+            motor_command_msg.left_reverse= 0
+        else:
+            motor_command_msg.left_forward = 0
+            motor_command_msg.left_reverse = int(-msg.l_stick_ud*p.MAX_PWM_COUNTS)
+        
+        if msg.r_stick_ud > 0:
+            motor_command_msg.right_forward = int(msg.r_stick_ud*p.MAX_PWM_COUNTS)
+            motor_command_msg.right_reverse = 0
+        else:
+            motor_command_msg.right_forward = 0
+            motor_command_msg.right_reversessss = int(-msg.r_stick_ud*p.MAX_PWM_COUNTS)
+        
+        self.get_logger().info('Publishing MotorCommand message: %s' % motor_command_msg)
+        self.motor_command_publisher.publish(motor_command_msg)
 
 def main(args=None):
     rclpy.init(args=args)
@@ -23,7 +42,8 @@ def main(args=None):
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
-    except:
+    except Exception as e:
+        print(e)
         rclpy.shutdown()
     finally:
         # Destroy the node explicitly

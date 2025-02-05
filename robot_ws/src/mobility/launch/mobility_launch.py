@@ -17,11 +17,19 @@ def generate_launch_description():
             condition=launch.conditions.LaunchConfigurationEquals('joy_node', 'true')
         ),
 
-        # Start drive_node
+        # Start joystick_node
         Node(
             package='mobility',  
             executable='joystick_node',  # Adjust this to your node's executable
             name='joystick_node',
+            output='screen',
+        ),
+
+        # Start drive_node
+        Node(
+            package='mobility',  
+            executable='drive_node',  # Adjust this to your node's executable
+            name='drive_node',
             output='screen',
         ),
 
