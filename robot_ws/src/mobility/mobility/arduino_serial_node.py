@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 import serial
 from robot_msgs.msg import MotorCommand
+import time
 
 class ArduinoSerialNode(Node):
     
@@ -14,7 +15,7 @@ class ArduinoSerialNode(Node):
         baud_rate = 115200
 
         try:
-            self.ser = serial.Serial(serial_port, baud_rate, timeout=1)
+            self.ser = serial.Serial(serial_port, baud_rate, timeout=None)
             self.get_logger().info(f'Connected to Arduino on {serial_port} at {baud_rate} baud')
         except serial.SerialException as e:
             self.get_logger().error(f'Failed to connect to serial port: {e}')
@@ -30,7 +31,10 @@ class ArduinoSerialNode(Node):
         if self.ser is not None:
             command = str(msg.left_forward) + ',' + str(msg.left_reverse) + ',' + str(msg.right_forward) + ',' + str(msg.right_reverse) + '\n'
             try:
+                self.ser.reset_input_buffer()
                 self.ser.write(command.encode('utf-8'))
+                self.ser.flush()
+                # time.sleep(0.05)
                 self.get_logger().info(f'Sent command to Arduino: {command}')
             except serial.SerialException as e:
                 self.get_logger().error(f'Failed to send command: {e}')
