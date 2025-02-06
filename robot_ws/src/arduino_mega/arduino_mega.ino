@@ -60,7 +60,8 @@ void loop() {
 void setupTimer1() {
     pinMode(11, OUTPUT);
     pinMode(12, OUTPUT);
-
+    TCCR1A = 0;
+    TCCR1B = 0;
     TCCR1A = (1 << WGM11) | (1 << COM1A1) | (1 << COM1B1);  // Fast PWM, Clear OC1A/OC1B on Compare Match
     TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS10);  // No prescaler, Fast PWM mode 14
 
@@ -74,7 +75,8 @@ void setupTimer1() {
 void setupTimer4() {
     pinMode(6, OUTPUT);
     pinMode(7, OUTPUT);
-
+    TCCR4A = 0;
+    TCCR4B = 0;
     TCCR4A = (1 << WGM41) | (1 << COM4A1) | (1 << COM4B1);  // Fast PWM, Clear OC4A/OC4B on Compare Match
     TCCR4B = (1 << WGM43) | (1 << WGM42) | (1 << CS40);  // No prescaler, Fast PWM mode 14
 
@@ -88,8 +90,8 @@ void setupTimer4() {
 void setPWM(int pin, int duty) {
     uint16_t pwm_value = map(duty, 0, 255, 0, 10666);  // Scale 0-255 to ICR1/ICR4 range
 
-    if (pin == 11) OCR1B = pwm_value;
-    else if (pin == 12) OCR1A = pwm_value;
-    else if (pin == 6) OCR4B = pwm_value;
-    else if (pin == 7) OCR4A = pwm_value;
+    if (pin == 11) OCR1A = pwm_value;
+    else if (pin == 12) OCR1B = pwm_value;
+    else if (pin == 6) OCR4A = pwm_value;
+    else if (pin == 7) OCR4B = pwm_value;
 }
