@@ -19,6 +19,12 @@ class ArduinoSerialNode(Node):
         except serial.SerialException as e:
             self.get_logger().error(f'Failed to connect to serial port: {e}')
             self.ser = None
+
+        if self.ser.is_open:
+            self.get_logger().info('Arduino serial port is open')
+        else:
+            self.get_logger().error('Arduino serial port is not open')
+
     def motor_command_callback(self, msg):
         
         if self.ser is not None:
