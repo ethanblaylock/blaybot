@@ -36,6 +36,12 @@ class ArduinoSerialNode(Node):
                 self.ser.flush()
                 # time.sleep(0.05)
                 self.get_logger().info(f'Sent command to Arduino: {command}')
+               
+                response = self.ser.readline().decode('utf-8').strip()
+                if response:
+                    self.get_logger().info(f"Arduino response: {response}")
+                else:
+                    self.get_logger().info('No response form Arduino')
             except serial.SerialException as e:
                 self.get_logger().error(f'Failed to send command: {e}')
         else:
