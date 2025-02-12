@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-
+from rclpy.executors import ExternalShutdownException
 from robot_msgs.msg import Xbox
 from robot_msgs.msg import MotorCommand
 
@@ -40,6 +40,8 @@ def main(args=None):
     try:    
         rclpy.spin(node)
     except KeyboardInterrupt:
+        pass
+    except ExternalShutdownException:
         pass
     except Exception as e:
         print(e)
