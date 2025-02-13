@@ -2,6 +2,10 @@
 
 # Funtion to stop the ROS2 node on the robot when the script is interrupted
 cleanup() {
+    echo "Stopping local ROS2 nodes"
+    ps aux | grep drive_node | grep -v grep | awk '{print $2}' | xargs kill -9
+    ps aux | grep joy_node | grep -v grep | awk '{print $2}' | xargs kill -9
+    ps aux | grep joystick_node | grep -v grep | awk '{print $2}' | xargs kill -9
     echo "Stopping the ROS2 node on the robot"
     ssh robot@192.168.0.120 "ps aux | grep arduino_serial_node | grep -v grep | awk '{print \$2}' | xargs kill -9"
 }
