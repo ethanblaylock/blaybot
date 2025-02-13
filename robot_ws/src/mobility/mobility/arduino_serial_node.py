@@ -34,7 +34,7 @@ class ArduinoSerialNode(Node):
                 self.ser.reset_input_buffer()
                 self.ser.write(command.encode('utf-8'))
                 self.ser.flush()
-                # time.sleep(0.05)
+                time.sleep(0.05)
                 self.get_logger().info(f'Sent command to Arduino: {command}')
                
                 response = self.ser.readline().decode('utf-8').strip()
