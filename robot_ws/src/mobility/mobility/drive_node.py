@@ -14,23 +14,28 @@ class DriveNode(Node):
 
         self.motor_command_publisher = self.create_publisher(MotorCommand, '/motor_command', 10)
 
+        self.speed = 3
+
     def xbox_callback(self, msg):
-        
+        if msg.l_bumper == 1 and self.speed > 0:
+            self.speed -= 1
+        if msg.r_bumper == 1 and self.speed < 3:
+            self.speed += 1
+
         motor_command_msg = MotorCommand()
         if msg.l_stick_ud > 0:
-            motor_command_msg.left_forward = int(msg.l_stick_ud*p.MAX_PWM_COUNTS)
+            motor_command_msg.left_forward = int(msg.l_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
             motor_command_msg.left_reverse= 0
         else:
             motor_command_msg.left_forward = 0
-            motor_command_msg.left_reverse = int(-msg.l_stick_ud*p.MAX_PWM_COUNTS)
+            motor_command_msg.left_reverse = int(-msg.l_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
         
         if msg.r_stick_ud > 0:
-            motor_command_msg.right_forward = int(msg.r_stick_ud*p.MAX_PWM_COUNTS)
+            motor_command_msg.right_forward = int(msg.r_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
             motor_command_msg.right_reverse = 0
         else:
             motor_command_msg.right_forward = 0
-            motor_command_msg.right_reverse = int(-msg.r_stick_ud*p.MAX_PWM_COUNTS)
-        
+            motor_command_msg.right_reverse = int(-msg.r_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
         self.motor_command_publisher.publish(motor_command_msg)
 
 def main(args=None):
