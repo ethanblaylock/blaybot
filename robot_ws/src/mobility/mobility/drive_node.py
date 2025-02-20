@@ -16,11 +16,20 @@ class DriveNode(Node):
 
         self.speed = 3
 
+        self.lb_debounce = True
+        self.rb_debounce = True
+
     def xbox_callback(self, msg):
-        if msg.l_bumper == 1 and self.speed > 0:
+        if msg.l_bumper == 1 and self.speed > 0 and self.lb_debounce:
             self.speed -= 1
-        if msg.r_bumper == 1 and self.speed < 3:
+            self.lb_debounce = False
+        if msg.l_bumper == 0:
+            self.lb_debounce = True
+        if msg.r_bumper == 1 and self.speed < 3 and self.rb_debounce:
             self.speed += 1
+            self.rb_debounce = False
+        if msg.r_bumper == 0:
+            self.rb_debounce = True
 
         motor_command_msg = MotorCommand()
         if msg.l_stick_ud > 0:
