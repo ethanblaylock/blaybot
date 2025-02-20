@@ -13,14 +13,20 @@ cleanup() {
 # Trap Ctrl-C and call cleanup()
 trap cleanup SIGINT
 
+tmux new-session -d -s launch
+
+tmux set -g mouse on
+
+tmux split-window -h
+
 # Launch the ROS2 launch file locally
 echo "Launching mobility ROS2 launch file"
-cd ~/blaybot/robot_ws 
-source install/setup.bash 
-ros2 launch mobility mobility_launch.py &
+tmux send-keys -t launch:0.0 'cd ~/blaybot/robot_ws && source install/setup.bash && ros2 launch mobility mobility_launch.py' C-m
 
 sleep 5
 
 # SSH into the robot and start the arduino_serial_node
 echo "SSH into the robot and starting arduino_serial_node"
-ssh robot@192.168.0.120 "cd ~/blaybot/robot_ws && source install/setup.bash && ros2 run mobility arduino_serial_node"
+tmux send-keys -t launch:0.1 "ssh 192.168.0.120 'source /opt/ros/humble/setup.bash && cd ~/blaybot/robot_ws && source install/setup.bash && ros2 run mobility arduino_serial_node'" C-m
+
+tmux attach -t launch

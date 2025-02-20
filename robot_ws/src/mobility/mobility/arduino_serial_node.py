@@ -68,6 +68,7 @@ def main(args=None):
         # (optional - otherwise it will be done automatically
         # when the garbage collector destroys the node object)
         node.destroy_node()
+        rclpy.shutdown()
         
 
 if __name__ == '__main__':

@@ -5,3 +5,4 @@
 **/install_isolated
 **/devel_isolated
 **/.DS_Store
+scripts/tmux-client-10093.log
