@@ -1,23 +1,22 @@
 #! /bin/bash
 
-# Funtion to stop the ROS2 node on the robot when the script is interrupted
-cleanup() {
-    echo "Stopping local ROS2 nodes"
-    ps aux | grep drive_node | grep -v grep | awk '{print $2}' | xargs kill -9
-    ps aux | grep joy_node | grep -v grep | awk '{print $2}' | xargs kill -9
-    ps aux | grep joystick_node | grep -v grep | awk '{print $2}' | xargs kill -9
-    echo "Stopping the ROS2 node on the robot"
-    ssh robot@192.168.0.120 "ps aux | grep arduino_serial_node | grep -v grep | awk '{print \$2}' | xargs kill -9"
-}
 
-# Trap Ctrl-C and call cleanup()
-trap cleanup SIGINT
-
-tmux new-session -d -s launch
+tmux kill-server
+sleep 0.01
+tmux new-session -d -t launch
 
 tmux set -g mouse on
 
 tmux split-window -h
+
+tmux send-keys -t launch:0.1 "
+cleanup() {
+    echo 'Stopping ROS2 node on the robot'
+    ssh robot@192.168.0.120 'ps aux | grep arduino_serial_node | grep -v grep | awk "{print \$2}" | xargs kill -9'
+}
+
+trap cleanup SIGINT" C-m
+
 
 # Launch the ROS2 launch file locally
 echo "Launching mobility ROS2 launch file"
