@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 import serial
-from robot_msgs.msg import MotorCommand
+from robot_msgs.msg import DriveCommand, ArmCommand
 import time
 
 class ArduinoSerialNode(Node):
@@ -9,8 +9,10 @@ class ArduinoSerialNode(Node):
     def __init__(self):
         super().__init__('arduino_serial_node')
      
-        self.motor_command_subscription = self.create_subscription(MotorCommand, '/motor_command', self.motor_command_callback, 10)
-        
+        self.drive_command_subscription = self.create_subscription(DriveCommand, '/drive_command', self.drive_command_callback, 10)
+        self.arm_command_subscription = self.create_subscription(ArmCommand, '/arm_command', self.arm_command_callback, 10)
+
+
         serial_port = '/dev/ttyACM0'
         baud_rate = 115200
 
@@ -26,10 +28,16 @@ class ArduinoSerialNode(Node):
         else:
             self.get_logger().error('Arduino serial port is not open')
 
-    def motor_command_callback(self, msg):
-        
+    def drive_command_callback(self, msg):
+        command = "DRIVE " + str(msg.left_forward) + ',' + str(msg.left_reverse) + ',' + str(msg.right_forward) + ',' + str(msg.right_reverse) + '\n'
+        self.send_command(command)
+
+    def arm_command_callback(self, msg):
+        command = "ARM " + str(msg.joint1) + ',' + str(msg.joint2) + ',' + str(msg.joint3) + ',' + str(msg.joint4) + ',' + str(msg.joint5) + ',' + str(msg.joint6) + '\n'
+        self.send_command(command)
+
+    def send_command(self, command):
         if self.ser is not None:
-            command = str(msg.left_forward) + ',' + str(msg.left_reverse) + ',' + str(msg.right_forward) + ',' + str(msg.right_reverse) + '\n'
             try:
                 self.ser.reset_input_buffer()
                 self.ser.write(command.encode('utf-8'))

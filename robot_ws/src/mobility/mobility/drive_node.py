@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.executors import ExternalShutdownException
 from robot_msgs.msg import Xbox
-from robot_msgs.msg import MotorCommand
+from robot_msgs.msg import DriveCommand
 
 from mobility import parameters as p
 
@@ -12,7 +12,7 @@ class DriveNode(Node):
         super().__init__('drive_node')
         self.xbox_subscription = self.create_subscription(Xbox, '/xbox', self.xbox_callback, 10)
 
-        self.motor_command_publisher = self.create_publisher(MotorCommand, '/motor_command', 10)
+        self.drive_command_publisher = self.create_publisher(DriveCommand, '/drive_command', 10)
 
         self.speed = 3
 
@@ -31,21 +31,21 @@ class DriveNode(Node):
         if msg.r_bumper == 0:
             self.rb_debounce = True
 
-        motor_command_msg = MotorCommand()
+        drive_command_msg = DriveCommand()
         if msg.l_stick_ud > 0:
-            motor_command_msg.left_forward = int(msg.l_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
-            motor_command_msg.left_reverse= 0
+            drive_command_msg.left_forward = float(msg.l_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
+            drive_command_msg.left_reverse= 0
         else:
-            motor_command_msg.left_forward = 0
-            motor_command_msg.left_reverse = int(-msg.l_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
+            drive_command_msg.left_forward = 0
+            drive_command_msg.left_reverse = float(-msg.l_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
         
         if msg.r_stick_ud > 0:
-            motor_command_msg.right_forward = int(msg.r_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
-            motor_command_msg.right_reverse = 0
+            drive_command_msg.right_forward = float(msg.r_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
+            drive_command_msg.right_reverse = 0
         else:
-            motor_command_msg.right_forward = 0
-            motor_command_msg.right_reverse = int(-msg.r_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
-        self.motor_command_publisher.publish(motor_command_msg)
+            drive_command_msg.right_forward = 0
+            drive_command_msg.right_reverse = float(-msg.r_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
+        self.drive_command_publisher.publish(drive_command_msg)
 
 def main(args=None):
     rclpy.init(args=args)
