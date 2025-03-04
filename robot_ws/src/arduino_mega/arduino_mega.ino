@@ -36,6 +36,13 @@ void setup() {
     pinMode(LEFT_REVERSE_PIN, OUTPUT);
     pinMode(RIGHT_FORWARD_PIN, OUTPUT);
     pinMode(RIGHT_REVERSE_PIN, OUTPUT);
+    pinMode(JOINT1_PIN, OUTPUT);
+    pinMode(JOINT2_PIN, OUTPUT);
+    pinMode(JOINT3_PIN, OUTPUT);
+    pinMode(JOINT4_PIN, OUTPUT);
+    pinMode(JOINT5_PIN, OUTPUT);
+    pinMode(JOINT6_PIN, OUTPUT);
+    
 
     // Configure 1500 Hz PWM for Timer 1 (Pins 11 & 12)
     setupTimer1();
@@ -230,7 +237,7 @@ void setDrivePWM(int pin, float duty) {
 
 // Function to set Arm PWM duty cycle
 void setArmPWM(int pin, float duty) {
-    uint16_t pwm_value = map(duty, 0, 255, 0, 39999);  // Scale 0-255 to ICR3/ICR5 range
+    int pwm_value = int(duty);
 
     if (pin == 2) OCR3B = pwm_value;
     else if (pin == 3) OCR3C = pwm_value;
