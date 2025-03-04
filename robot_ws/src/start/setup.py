@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 import os
 from glob import glob
 
-package_name = 'arm_control'
+package_name = 'start'
 
 setup(
     name=package_name,
@@ -13,17 +13,17 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*launch.[pxy][yma]*'))),
+
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='base',
     maintainer_email='ethan.blaylock37@gmail.com',
     description='TODO: Package description',
-    license='Apache-2.0',
+    license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'arm_node = arm_control.arm_node:main',
         ],
     },
 )
