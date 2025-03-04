@@ -25,6 +25,7 @@ struct Command {
 // Add new commands easily in this list
 Command commands[] = {
     {"DRIVE", handleDriveCommand},
+    {"ARM", handleArmCommand},
     // Future commands can be added here
 };
 
@@ -42,7 +43,7 @@ void setup() {
     pinMode(JOINT4_PIN, OUTPUT);
     pinMode(JOINT5_PIN, OUTPUT);
     pinMode(JOINT6_PIN, OUTPUT);
-    
+
 
     // Configure 1500 Hz PWM for Timer 1 (Pins 11 & 12)
     setupTimer1();
@@ -203,9 +204,9 @@ void setupTimer3() {
 
     ICR3 = 39999;  // (16,000,000 / (50 * 8)) - 1 = 39999
 
-    OCR3A = 0;  // Start with 0% duty cycle
-    OCR3B = 0;  // Start with 0% duty cycle
-    OCR3C = 0;  // Start with 0% duty cycle
+    OCR3A = 3000;  // Start with 7.5% duty cycle
+    OCR3B = 3000;  // Start with 7.5% duty cycle
+    OCR3C = 3000;  // Start with 7.5% duty cycle
 }
 
 //Function to precisely set 50 Hz PWM for Timer 5 (Pins 44, 45, 46)
@@ -220,9 +221,9 @@ void setupTimer5() {
 
     ICR5 = 39999;  // (16,000,000 / (50 * 8)) - 1 = 39999
 
-    OCR5A = 0;  // Start with 0% duty cycle
-    OCR5B = 0;  // Start with 0% duty cycle
-    OCR5C = 0;  // Start with 0% duty cycle
+    OCR5A = 3000;  // Start with 7.5% duty cycle
+    OCR5B = 3000;  // Start with 7.5% duty cycle
+    OCR5C = 3000;  // Start with 7.5% duty cycle
 }
 
 // Function to set Drive PWM duty cycle
