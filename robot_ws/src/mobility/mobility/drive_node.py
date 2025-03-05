@@ -34,16 +34,16 @@ class DriveNode(Node):
         drive_command_msg = DriveCommand()
         if msg.l_stick_ud > 0:
             drive_command_msg.left_forward = float(msg.l_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
-            drive_command_msg.left_reverse= 0
+            drive_command_msg.left_reverse= 0.0
         else:
-            drive_command_msg.left_forward = 0
+            drive_command_msg.left_forward = 0.0
             drive_command_msg.left_reverse = float(-msg.l_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
         
         if msg.r_stick_ud > 0:
             drive_command_msg.right_forward = float(msg.r_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
-            drive_command_msg.right_reverse = 0
+            drive_command_msg.right_reverse = 0.0
         else:
-            drive_command_msg.right_forward = 0
+            drive_command_msg.right_forward = 0.0
             drive_command_msg.right_reverse = float(-msg.r_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
         self.drive_command_publisher.publish(drive_command_msg)
 

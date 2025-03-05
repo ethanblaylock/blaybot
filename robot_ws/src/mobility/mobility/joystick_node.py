@@ -22,8 +22,8 @@ class JoystickNode(Node):
         xbox_msg.l_stick_ud = msg.axes[1]
         xbox_msg.r_stick_lr = msg.axes[2]
         xbox_msg.r_stick_ud = msg.axes[3]
-        xbox_msg.r_trigger = msg.axes[4]
-        xbox_msg.l_trigger = msg.axes[5]
+        xbox_msg.r_trigger = -((msg.axes[4]-1)/2)
+        xbox_msg.l_trigger = -((msg.axes[5]-1)/2)
         xbox_msg.d_pad_lr = msg.axes[6]
         xbox_msg.d_pad_ud = msg.axes[7]
 

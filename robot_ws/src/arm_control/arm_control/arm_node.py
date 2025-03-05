@@ -28,12 +28,12 @@ class ArmNode(Node):
 
         
     def xbox_callback(self, msg):
-        if msg.a == 1 and self.speed > 0 and self.a_debounce:
+        if msg.a == 1 and self.speed < 3 and self.a_debounce:
             self.speed += 1
             self.a_debounce = False
         if msg.a == 0:
             self.a_debounce = True
-        if msg.b == 1 and self.speed < 3 and self.b_debounce:
+        if msg.b == 1 and self.speed > 0 and self.b_debounce:
             self.speed -= 1
             self.b_debounce = False
         if msg.r_bumper == 0:
@@ -57,12 +57,12 @@ class ArmNode(Node):
 
 
         # Limit joint angles
-        self.current_joint1 = max(min(self.current_joint1, p.JOINT1_LIMITS[1]), p.JOINT1_LIMITS[0])
-        self.current_joint2 = max(min(self.current_joint2, p.JOINT2_LIMITS[1]), p.JOINT2_LIMITS[0])
-        self.current_joint3 = max(min(self.current_joint3, p.JOINT3_LIMITS[1]), p.JOINT3_LIMITS[0])
-        self.current_joint4 = max(min(self.current_joint4, p.JOINT4_LIMITS[1]), p.JOINT4_LIMITS[0])
-        self.current_joint5 = max(min(self.current_joint5, p.JOINT5_LIMITS[1]), p.JOINT5_LIMITS[0])
-        self.current_joint6 = max(min(self.current_joint6, p.JOINT6_LIMITS[1]), p.JOINT6_LIMITS[0])
+        self.current_joint1 = float(max(min(self.current_joint1, p.JOINT1_LIMITS[1]), p.JOINT1_LIMITS[0]))
+        self.current_joint2 = float(max(min(self.current_joint2, p.JOINT2_LIMITS[1]), p.JOINT2_LIMITS[0]))
+        self.current_joint3 = float(max(min(self.current_joint3, p.JOINT3_LIMITS[1]), p.JOINT3_LIMITS[0]))
+        self.current_joint4 = float(max(min(self.current_joint4, p.JOINT4_LIMITS[1]), p.JOINT4_LIMITS[0]))
+        self.current_joint5 = float(max(min(self.current_joint5, p.JOINT5_LIMITS[1]), p.JOINT5_LIMITS[0]))
+        self.current_joint6 = float(max(min(self.current_joint6, p.JOINT6_LIMITS[1]), p.JOINT6_LIMITS[0]))
 
         # Create and publish ArmCommand message
         arm_command_msg = ArmCommand()
@@ -72,7 +72,6 @@ class ArmNode(Node):
         arm_command_msg.joint4 = self.current_joint4
         arm_command_msg.joint5 = self.current_joint5
         arm_command_msg.joint6 = self.current_joint6
-
         self.arm_command_publisher.publish(arm_command_msg)
 
 def main(args=None):
