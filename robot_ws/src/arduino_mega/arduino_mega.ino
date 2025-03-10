@@ -76,7 +76,7 @@ void processCommand(String input) {
 
         String singleCommand = input.substring(start, end);
         singleCommand.trim(); // Remove whitespace
-
+        Serial.println(singleCommand);
         if (singleCommand.length() > 0) {
             int spaceIndex = singleCommand.indexOf(' ');
             String command = spaceIndex == -1 ? singleCommand : singleCommand.substring(0, spaceIndex);
@@ -137,7 +137,7 @@ void handleArmCommand(String args) {
     // Tokenize using commas
     char *token = strtok((char *)args.c_str(), ",");
     while (token != NULL && index < 6) {
-        pwm_values[index] = constrain(atoi(token), MIN_PWM, MAX_PWM);
+        pwm_values[index] = atoi(token);
         token = strtok(NULL, ",");
         index++;
     }
