@@ -33,6 +33,14 @@ def generate_launch_description():
             output='screen',
         ),
 
+        # Start mode_manager_node
+        Node(
+            package='mobility',
+            executable='mode_manager_node',
+            name='mode_manager_node',
+            output='screen'
+        ),
+
         # Log message
         LogInfo(
             condition=launch.conditions.LaunchConfigurationEquals('joy_node', 'true'),

@@ -26,6 +26,7 @@ setup(
             'drive_node = mobility.drive_node:main',
             'joystick_node = mobility.joystick_node:main',
             'arduino_serial_node = mobility.arduino_serial_node:main',
+            'mode_manager_node = mobility.mode_manager_node:main',
         ],
     },
 

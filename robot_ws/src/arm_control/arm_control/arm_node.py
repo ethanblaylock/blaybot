@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.executors import ExternalShutdownException
 from robot_msgs.msg import Xbox
-from robot_msgs.msg import ArmCommand
+from robot_msgs.msg import ArmCommand, Mode
 
 from mobility import parameters as p
 
@@ -13,6 +13,8 @@ class ArmNode(Node):
         self.xbox_subscription = self.create_subscription(Xbox, '/xbox', self.xbox_callback, 10)
 
         self.arm_command_publisher = self.create_publisher(ArmCommand, '/arm_command', 10)
+
+        self.mode_subscription = self.create_subscription(Mode, '/mode', self.mode_callback, 10)
 
         self.current_joint1 = p.INIT_JOINT1
         self.current_joint2 = p.INIT_JOINT2
@@ -26,8 +28,12 @@ class ArmNode(Node):
         self.a_debounce = True
         self.b_debounce = True
 
+        self.arm_enable = False
         
     def xbox_callback(self, msg):
+        if not self.arm_enable:
+            return
+        
         if msg.a == 1 and self.speed < 3 and self.a_debounce:
             self.speed += 1
             self.a_debounce = False
@@ -73,6 +79,12 @@ class ArmNode(Node):
         arm_command_msg.joint5 = self.current_joint5
         arm_command_msg.joint6 = self.current_joint6
         self.arm_command_publisher.publish(arm_command_msg)
+    
+    def mode_callback(self, mode_msg):
+        if mode_msg == Mode.ARM:
+            self.arm_enable = True
+        else:
+            self.arm_enable = False
 
 def main(args=None):
     rclpy.init(args=args)

@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.executors import ExternalShutdownException
 from robot_msgs.msg import Xbox
-from robot_msgs.msg import DriveCommand
+from robot_msgs.msg import DriveCommand, Mode
 
 from mobility import parameters as p
 
@@ -14,12 +14,18 @@ class DriveNode(Node):
 
         self.drive_command_publisher = self.create_publisher(DriveCommand, '/drive_command', 10)
 
+        self.mode_subscription = self.create_subscription(Mode, '/mode', self.mode_callback, 10)
         self.speed = 3
 
         self.lb_debounce = True
         self.rb_debounce = True
 
+        self.drive_enable = True
+
     def xbox_callback(self, msg):
+        if not self.drive_enable:
+            return
+        
         if msg.l_bumper == 1 and self.speed > 0 and self.lb_debounce:
             self.speed -= 1
             self.lb_debounce = False
@@ -46,6 +52,13 @@ class DriveNode(Node):
             drive_command_msg.right_forward = 0.0
             drive_command_msg.right_reverse = float(-msg.r_stick_ud*p.MAX_PWM_COUNTS*p.DRIVE_SPEEDS[self.speed])
         self.drive_command_publisher.publish(drive_command_msg)
+
+    def mode_callback(self, mode_msg):
+        if mode_msg.mode == Mode.DRIVE:
+            self.drive_enable = True
+        else:
+            self.drive_enable = False
+
 
 def main(args=None):
     rclpy.init(args=args)
