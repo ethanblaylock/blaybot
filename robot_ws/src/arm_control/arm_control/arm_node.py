@@ -81,7 +81,7 @@ class ArmNode(Node):
         self.arm_command_publisher.publish(arm_command_msg)
     
     def mode_callback(self, mode_msg):
-        if mode_msg == Mode.ARM:
+        if mode_msg.mode == Mode.ARM:
             self.arm_enable = True
         else:
             self.arm_enable = False
