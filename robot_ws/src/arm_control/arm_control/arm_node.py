@@ -34,6 +34,22 @@ class ArmNode(Node):
         if not self.arm_enable:
             return
         
+        if msg.share == 1:
+            self.current_joint1 = p.TUCK_JOINT1
+            self.current_joint2 = p.TUCK_JOINT2
+            self.current_joint3 = p.TUCK_JOINT3 
+            self.current_joint4 = p.TUCK_JOINT4
+            self.current_joint5 = p.TUCK_JOINT5
+            self.current_joint6 = p.TUCK_JOINT6
+
+        if msg.view == 1:
+            self.current_joint1 = p.INIT_JOINT1
+            self.current_joint2 = p.INIT_JOINT2
+            self.current_joint3 = p.INIT_JOINT3
+            self.current_joint4 = p.INIT_JOINT4
+            self.current_joint5 = p.INIT_JOINT5
+            self.current_joint6 = p.INIT_JOINT6
+
         if msg.a == 1 and self.speed < 3 and self.a_debounce:
             self.speed += 1
             self.a_debounce = False
@@ -48,7 +64,7 @@ class ArmNode(Node):
         # Set joint angles
         self.current_joint1 += msg.l_stick_lr*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
         self.current_joint2 += msg.l_stick_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
-        self.current_joint3 += msg.r_stick_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
+        self.current_joint3 -= msg.r_stick_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
         self.current_joint4 += msg.d_pad_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
 
         if msg.r_trigger > 0:
