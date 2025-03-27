@@ -35,6 +35,7 @@ class ArduinoSerialNode(Node):
     def arm_command_callback(self, msg):
         command = "ARM " + str(msg.joint1) + ',' + str(msg.joint2) + ',' + str(msg.joint3) + ',' + str(msg.joint4) + ',' + str(msg.joint5) + ',' + str(msg.joint6) + '\n'
         self.send_command(command)
+        print(command)
 
     def send_command(self, command):
         if self.ser is not None:
@@ -45,7 +46,7 @@ class ArduinoSerialNode(Node):
                 time.sleep(0.05)
                 response = self.ser.readline().decode('utf-8').strip()
                 if response:
-                    pass
+                    self.get_logger().info(response)
                 else:
                     self.get_logger().info('No response form Arduino')
             except serial.SerialException as e:
