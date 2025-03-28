@@ -3,7 +3,7 @@ from rclpy.node import Node
 from rclpy.executors import ExternalShutdownException
 from robot_msgs.msg import Xbox
 from robot_msgs.msg import ArmCommand, Mode
-
+from roboticstoolbox import DHRobot
 from mobility import parameters as p
 
 class ArmNode(Node):
@@ -27,7 +27,8 @@ class ArmNode(Node):
 
         self.a_debounce = True
         self.b_debounce = True
-
+        self.arm_dh_model = DHRobot(p.dh_params, name='arm')
+        self.arm_dh_model.q = p.INIT_Q
         self.arm_enable = False
         
     def xbox_callback(self, msg):
@@ -95,12 +96,22 @@ class ArmNode(Node):
         arm_command_msg.joint5 = self.current_joint5
         arm_command_msg.joint6 = self.current_joint6
         self.arm_command_publisher.publish(arm_command_msg)
+
+        self.update_dh_model()
     
     def mode_callback(self, mode_msg):
         if mode_msg.mode == Mode.ARM:
             self.arm_enable = True
         else:
             self.arm_enable = False
+    
+    def update_dh_model(self):
+        angle1 = (self.current_joint1 - 3000) / 848.826363 + 0.58905
+        angle2 = (self.current_joint2 - 3000) / 848.826363
+        angle3 = (self.current_joint3 - 3000) / 848.826363
+        angle4 = (self.current_joint4 - 3000) / 848.826363
+        angle5 = (self.current_joint5 - 3000) / 848.826363
+        self.arm_dh_model.q = [angle1, angle2, angle3, angle4, angle5]
 
 def main(args=None):
     rclpy.init(args=args)
