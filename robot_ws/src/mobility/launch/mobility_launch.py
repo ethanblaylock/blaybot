@@ -41,6 +41,8 @@ def generate_launch_description():
             output='screen'
         ),
 
+       
+
         # Log message
         LogInfo(
             condition=launch.conditions.LaunchConfigurationEquals('joy_node', 'true'),

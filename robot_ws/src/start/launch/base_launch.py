@@ -18,4 +18,10 @@ def generate_launch_description():
                 ])
         ),
 
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+                get_package_share_directory('camera_control'), '/launch/camera_control_launch.py'
+                ])
+        ),
+
     ])
