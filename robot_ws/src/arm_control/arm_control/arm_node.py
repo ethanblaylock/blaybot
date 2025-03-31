@@ -88,9 +88,7 @@ class ArmNode(Node):
         J = self.arm_dh_model.jacob0(q)
         J_dagger = J.T @ np.linalg.inv(J @ J.T + p.KD**2 * np.eye(len(J)))
         q_dot = J_dagger @ des_ee_twist
-        self.get_logger().info(f'q_dot: {q_dot}')
         q_dot = np.clip(q_dot, -p.MAX_ARM_SPEED, p.MAX_ARM_SPEED)
-        self.get_logger().info(f'q_dot clipped: {q_dot}')
         self.current_joint1 += q_dot[0]
         self.current_joint2 += q_dot[1]
         self.current_joint3 += q_dot[2]
