@@ -5,6 +5,7 @@ from robot_msgs.msg import Xbox
 from robot_msgs.msg import ArmCommand, Mode
 from roboticstoolbox import DHRobot
 from mobility import parameters as p
+import numpy as np
 
 class ArmNode(Node):
     
@@ -16,19 +17,22 @@ class ArmNode(Node):
 
         self.mode_subscription = self.create_subscription(Mode, '/mode', self.mode_callback, 10)
 
-        self.current_joint1 = p.INIT_JOINT1
-        self.current_joint2 = p.INIT_JOINT2
-        self.current_joint3 = p.INIT_JOINT3
-        self.current_joint4 = p.INIT_JOINT4
-        self.current_joint5 = p.INIT_JOINT5
-        self.current_joint6 = p.INIT_JOINT6
+        self.arm_dh_model = DHRobot(p.dh_params, name='arm')
+        self.arm_dh_model.q = p.INIT_Q
+
+        self.current_joint1 = p.TUCK_JOINT1
+        self.current_joint2 = p.TUCK_JOINT2
+        self.current_joint3 = p.TUCK_JOINT3
+        self.current_joint4 = p.TUCK_JOINT4
+        self.current_joint5 = p.TUCK_JOINT5
+        self.current_joint6 = p.TUCK_JOINT6
+        self.move_to_joint_angles(p.INIT_JOINT1, p.INIT_JOINT2, p.INIT_JOINT3, p.INIT_JOINT4, p.INIT_JOINT5, p.INIT_JOINT6)
 
         self.speed = 3
 
         self.a_debounce = True
         self.b_debounce = True
-        self.arm_dh_model = DHRobot(p.dh_params, name='arm')
-        self.arm_dh_model.q = p.INIT_Q
+
         self.arm_enable = False
         
     def xbox_callback(self, msg):
@@ -36,20 +40,16 @@ class ArmNode(Node):
             return
         
         if msg.share == 1:
-            self.current_joint1 = p.TUCK_JOINT1
-            self.current_joint2 = p.TUCK_JOINT2
-            self.current_joint3 = p.TUCK_JOINT3 
-            self.current_joint4 = p.TUCK_JOINT4
-            self.current_joint5 = p.TUCK_JOINT5
-            self.current_joint6 = p.TUCK_JOINT6
+            self.get_logger().info('Tucking arm')
+            self.move_to_joint_angles(p.TUCK_JOINT1, p.TUCK_JOINT2, p.TUCK_JOINT3, p.TUCK_JOINT4, p.TUCK_JOINT5, p.TUCK_JOINT6)
+            self.get_logger().info('Tucking complete')
+            return
 
         if msg.view == 1:
-            self.current_joint1 = p.INIT_JOINT1
-            self.current_joint2 = p.INIT_JOINT2
-            self.current_joint3 = p.INIT_JOINT3
-            self.current_joint4 = p.INIT_JOINT4
-            self.current_joint5 = p.INIT_JOINT5
-            self.current_joint6 = p.INIT_JOINT6
+            self.get_logger().info('Untucking arm')
+            self.move_to_joint_angles(p.INIT_JOINT1, p.INIT_JOINT2, p.INIT_JOINT3, p.INIT_JOINT4, p.INIT_JOINT5, p.INIT_JOINT6)
+            self.get_logger().info('Untucking complete')
+            return
 
         if msg.a == 1 and self.speed < 3 and self.a_debounce:
             self.speed += 1
@@ -63,10 +63,10 @@ class ArmNode(Node):
             self.b_debounce = True
 
         # Set joint angles
-        self.current_joint1 += msg.l_stick_lr*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
-        self.current_joint2 += msg.l_stick_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
-        self.current_joint3 -= msg.r_stick_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
-        self.current_joint4 += msg.d_pad_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
+        # self.current_joint1 += msg.l_stick_lr*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
+        # self.current_joint2 += msg.l_stick_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
+        # self.current_joint3 -= msg.r_stick_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
+        # self.current_joint4 += msg.d_pad_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
 
         if msg.r_trigger > 0:
             self.current_joint5 += msg.r_trigger*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
@@ -78,6 +78,24 @@ class ArmNode(Node):
         elif msg.l_bumper > 0:
             self.current_joint6 -= msg.l_bumper*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
 
+        des_x_vel_ik = msg.l_stick_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
+        des_y_vel_ik = msg.l_stick_lr*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
+        des_z_vel_ik = msg.r_stick_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
+
+        des_y_rot_ik = msg.d_pad_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
+        des_ee_twist = np.array([des_x_vel_ik, des_y_vel_ik, des_z_vel_ik, 0, des_y_rot_ik, 0])
+        q = self.arm_dh_model.q
+        J = self.arm_dh_model.jacob0(q)
+        J_dagger = J.T @ np.linalg.inv(J @ J.T + p.KD**2 * np.eye(len(J)))
+        q_dot = J_dagger @ des_ee_twist
+        self.get_logger().info(f'q_dot: {q_dot}')
+        q_dot = np.clip(q_dot, -p.MAX_ARM_SPEED, p.MAX_ARM_SPEED)
+        self.get_logger().info(f'q_dot clipped: {q_dot}')
+        self.current_joint1 += q_dot[0]
+        self.current_joint2 += q_dot[1]
+        self.current_joint3 += q_dot[2]
+        self.current_joint4 += q_dot[3]
+        self.current_joint5 += q_dot[4]
 
         # Limit joint angles
         self.current_joint1 = float(max(min(self.current_joint1, p.JOINT1_LIMITS[1]), p.JOINT1_LIMITS[0]))
@@ -107,11 +125,61 @@ class ArmNode(Node):
     
     def update_dh_model(self):
         angle1 = (self.current_joint1 - 3000) / 848.826363 + 0.58905
-        angle2 = (self.current_joint2 - 3000) / 848.826363
-        angle3 = (self.current_joint3 - 3000) / 848.826363
-        angle4 = (self.current_joint4 - 3000) / 848.826363
-        angle5 = (self.current_joint5 - 3000) / 848.826363
+        angle2 = (self.current_joint2 - 3000) / 848.826363 + 0.78972
+        angle3 = (self.current_joint3 - 3000) / 848.826363 + 1.64933
+        angle4 = (self.current_joint4 - 3000) / 848.826363 - 0.82467
+        angle5 = (self.current_joint5 - 3000) / 848.826363 + 0.11781
         self.arm_dh_model.q = [angle1, angle2, angle3, angle4, angle5]
+
+    def move_to_joint_angles(self, joint1, joint2, joint3, joint4, joint5, joint6):
+        while True:
+            if self.current_joint1 < joint1:
+                self.current_joint1 += 1
+            elif self.current_joint1 > joint1:
+                self.current_joint1 -= 1
+            if self.current_joint2 < joint2:
+                self.current_joint2 += 1
+            elif self.current_joint2 > joint2:
+                self.current_joint2 -= 1
+            if self.current_joint3 < joint3:
+                self.current_joint3 += 1
+            elif self.current_joint3 > joint3:
+                self.current_joint3 -= 1
+            if self.current_joint4 < joint4:
+                self.current_joint4 += 1
+            elif self.current_joint4 > joint4:
+                self.current_joint4 -= 1
+            if self.current_joint5 < joint5:
+                self.current_joint5 += 1
+            elif self.current_joint5 > joint5:
+                self.current_joint5 -= 1
+            if self.current_joint6 < joint6:
+                self.current_joint6 += 1
+            elif self.current_joint6 > joint6:
+                self.current_joint6 -= 1
+            
+            # Limit joint angles
+            self.current_joint1 = float(max(min(self.current_joint1, p.JOINT1_LIMITS[1]), p.JOINT1_LIMITS[0]))
+            self.current_joint2 = float(max(min(self.current_joint2, p.JOINT2_LIMITS[1]), p.JOINT2_LIMITS[0]))
+            self.current_joint3 = float(max(min(self.current_joint3, p.JOINT3_LIMITS[1]), p.JOINT3_LIMITS[0]))
+            self.current_joint4 = float(max(min(self.current_joint4, p.JOINT4_LIMITS[1]), p.JOINT4_LIMITS[0]))
+            self.current_joint5 = float(max(min(self.current_joint5, p.JOINT5_LIMITS[1]), p.JOINT5_LIMITS[0]))
+            self.current_joint6 = float(max(min(self.current_joint6, p.JOINT6_LIMITS[1]), p.JOINT6_LIMITS[0]))
+
+            self.update_dh_model()
+
+            arm_command_msg = ArmCommand()
+            arm_command_msg.joint1 = self.current_joint1
+            arm_command_msg.joint2 = self.current_joint2
+            arm_command_msg.joint3 = self.current_joint3
+            arm_command_msg.joint4 = self.current_joint4
+            arm_command_msg.joint5 = self.current_joint5
+            arm_command_msg.joint6 = self.current_joint6
+            self.arm_command_publisher.publish(arm_command_msg)
+            if abs(self.current_joint1 - joint1) < 1 and abs(self.current_joint2 - joint2) < 1 and abs(self.current_joint3 - joint3) < 1 and abs(self.current_joint4 - joint4) < 1 and abs(self.current_joint5 - joint5) < 1 and abs(self.current_joint6 - joint6) < 1:
+                break
+            for i in range(50000):
+                pass
 
 def main(args=None):
     rclpy.init(args=args)
