@@ -46,7 +46,8 @@ class ArduinoSerialNode(Node):
                 time.sleep(0.05)
                 response = self.ser.readline().decode('utf-8').strip()
                 if response:
-                    self.get_logger().info(response)
+                    # self.get_logger().info(response)
+                    pass
                 else:
                     self.get_logger().info('No response form Arduino')
             except serial.SerialException as e:

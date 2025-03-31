@@ -8,7 +8,8 @@ setup(
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
+         ['resource/' + package_name]),
+        ('share/' + package_name + '/resource', ['resource/apriltag_settings.yaml']),  # Add this line to install the YAML file
         ('share/' + package_name, ['package.xml']),
     ],
     install_requires=['setuptools'],
