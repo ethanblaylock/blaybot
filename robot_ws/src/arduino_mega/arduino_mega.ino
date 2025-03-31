@@ -204,9 +204,9 @@ void setupTimer3() {
 
     ICR3 = 39999;  // (16,000,000 / (50 * 8)) - 1 = 39999
 
-    OCR3A = 2500;  // Start with 7.5% duty cycle
-    OCR3B = 3000;  // Start with 7.5% duty cycle
-    OCR3C = 3000;  // Start with 7.5% duty cycle
+    // OCR3A = 2500;  // Start with 7.5% duty cycle
+    // OCR3B = 3000;  // Start with 7.5% duty cycle
+    // OCR3C = 3000;  // Start with 7.5% duty cycle
 }
 
 //Function to precisely set 50 Hz PWM for Timer 5 (Pins 44, 45, 46)
@@ -221,9 +221,9 @@ void setupTimer5() {
 
     ICR5 = 39999;  // (16,000,000 / (50 * 8)) - 1 = 39999
 
-    OCR5A = 3500;  // Start with 7.5% duty cycle
-    OCR5B = 3000;  // Start with 7.5% duty cycle
-    OCR5C = 3100;  // Start with 7.5% duty cycle
+    // OCR5A = 3500;  // Start with 7.5% duty cycle
+    // OCR5B = 3000;  // Start with 7.5% duty cycle
+    // OCR5C = 3100;  // Start with 7.5% duty cycle
 }
 
 // Function to set Drive PWM duty cycle
