@@ -6,6 +6,9 @@ from robot_msgs.msg import ArmCommand, Mode
 from roboticstoolbox import DHRobot
 from mobility import parameters as p
 import numpy as np
+from apriltag_client import ApriltagClient
+from visual_servoing import VisualServoing
+
 
 class ArmNode(Node):
     
@@ -34,6 +37,9 @@ class ArmNode(Node):
         self.b_debounce = True
 
         self.arm_enable = False
+
+        self.apriltag_client = ApriltagClient()
+        self.visual_servoing = VisualServoing()
         
     def xbox_callback(self, msg):
         if not self.arm_enable:
@@ -51,6 +57,10 @@ class ArmNode(Node):
             self.get_logger().info('Untucking complete')
             return
 
+        if msg.menu == 1:
+            while True:
+                self.visual_servo()
+    
         if msg.a == 1 and self.speed < 3 and self.a_debounce:
             self.speed += 1
             self.a_debounce = False
@@ -178,6 +188,64 @@ class ArmNode(Node):
                 break
             for i in range(50000):
                 pass
+
+    def visual_servo(self):
+        final_camera_depth = 0.2
+
+        desired_corners = self.get_target_corners(final_camera_depth, 0.0654)
+
+        ideal_cam_pose = np.array([0,0,final_camera_depth])
+        self.visual_servoing.set_target(ideal_cam_pose,None,ideal_corners=desired_corners)
+
+        while True:
+            if self.apriltag_client.corners == None:
+                continue
+
+            marker_corners = self.apriltag_client.corners
+            if marker_corners is None:
+                continue
+
+            # Don't move if the target hasn't been set
+            if not self.visual_servoing._target_set:
+                continue
+            # Get control law velocity and transform to body frame, then send to robot
+            twist = self.visual_servoing.get_next_vel(corners=marker_corners, depths=self._apriltag_client.depths)
+
+            self._apriltag_client.corners = None
+
+            q = self.arm_dh_model.q
+            J = self.arm_dh_model.jacob0(q)
+            J_dagger = J.T @ np.linalg.inv(J @ J.T + p.KD**2 * np.eye(len(J)))
+            q_dot = J_dagger @ twist
+            q_dot = np.clip(q_dot, -p.MAX_ARM_SPEED, p.MAX_ARM_SPEED)
+
+            self.current_joint1 += q_dot[0]
+            self.current_joint2 += q_dot[1]
+            self.current_joint3 += q_dot[2]
+            self.current_joint4 += q_dot[3]
+            self.current_joint5 += q_dot[4]
+
+            self.current_joint1 = float(max(min(self.current_joint1, p.JOINT1_LIMITS[1]), p.JOINT1_LIMITS[0]))
+            self.current_joint2 = float(max(min(self.current_joint2, p.JOINT2_LIMITS[1]), p.JOINT2_LIMITS[0]))
+            self.current_joint3 = float(max(min(self.current_joint3, p.JOINT3_LIMITS[1]), p.JOINT3_LIMITS[0]))
+            self.current_joint4 = float(max(min(self.current_joint4, p.JOINT4_LIMITS[1]), p.JOINT4_LIMITS[0]))
+            self.current_joint5 = float(max(min(self.current_joint5, p.JOINT5_LIMITS[1]), p.JOINT5_LIMITS[0]))
+
+            self.update_dh_model()
+
+            arm_command_msg = ArmCommand()
+            arm_command_msg.joint1 = self.current_joint1
+            arm_command_msg.joint2 = self.current_joint2
+            arm_command_msg.joint3 = self.current_joint3
+            arm_command_msg.joint4 = self.current_joint4
+            arm_command_msg.joint5 = self.current_joint5
+            arm_command_msg.joint6 = self.current_joint6
+            self.arm_command_publisher.publish(arm_command_msg)
+
+    def get_target_corners(self, final_camera_depth, size):
+        corner = size/2
+        corner = corner/final_camera_depth
+        return np.array([-corner, corner, corner, corner, corner, -corner, -corner, -corner])
 
 def main(args=None):
     rclpy.init(args=args)

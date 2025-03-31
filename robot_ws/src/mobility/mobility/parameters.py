@@ -75,6 +75,12 @@ INIT_Q = [0,np.pi/2,3*np.pi/4,-np.pi/4,0]
 
 
 KD = 0.1
+
+# K = [1213.69694,    0.     ,  739.09721,
+#             0.     , 1211.13729,  622.62561,
+#             0.     ,    0.     ,    1.     ]
+
+
 if __name__ == '__main__':
     robot = DHRobot(dh_params)
     print(robot)

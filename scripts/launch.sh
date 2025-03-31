@@ -1,31 +1,39 @@
-#! /bin/bash
+#!/bin/bash
 
-
-tmux kill-server
+# Kill any existing tmux session named 'launch'
+tmux kill-session -t launch 2>/dev/null
 sleep 0.01
-tmux new-session -d -t launch
 
+# Start a new tmux session named 'launch'
+tmux new-session -d -s launch
+
+# Enable mouse support in tmux
 tmux set -g mouse on
 
+# Split the tmux session into two horizontal panes
 tmux split-window -h
 
-tmux send-keys -t launch:0.1 "
+# Function to cleanup processes on exit
 cleanup() {
-    echo 'Stopping ROS2 node on the robot'
-    ssh robot@192.168.0.120 'ps aux | grep arduino_serial_node | grep -v grep | awk "{print \$2}" | xargs kill -9'
+    echo "Stopping ROS2 processes..."
+    tmux send-keys -t launch:0.0 C-c  # Stop local ROS2 launch
+    ssh robot@192.168.0.120 'pkill -f arduino_serial_node'  # Stop remote node
+    exit 0
 }
 
-trap cleanup SIGINT" C-m
+# Catch Ctrl+C and run cleanup function
+trap cleanup SIGINT
 
-
-# Launch the ROS2 launch file locally
-echo "Launching mobility ROS2 launch file"
-tmux send-keys -t launch:0.0 'cd ~/blaybot/robot_ws && source install/setup.bash && ros2 launch mobility mobility_launch.py' C-m
+# Launch the ROS2 launch file locally in the first pane
+echo "Launching local"
+tmux send-keys -t launch:0.0 'cd ~/blaybot/robot_ws && source install/setup.bash && ros2 launch start base_launch.py' C-m
 
 sleep 5
 
-# SSH into the robot and start the arduino_serial_node
-echo "SSH into the robot and starting arduino_serial_node"
-tmux send-keys -t launch:0.1 "ssh 192.168.0.120 'source /opt/ros/humble/setup.bash && cd ~/blaybot/robot_ws && source install/setup.bash && ros2 run mobility arduino_serial_node'" C-m
+# SSH into the robot in the second pane and start the arduino_serial_node
+echo "SSH into the robot and starting robot"
+tmux send-keys -t launch:0.1 "ssh -t robot@192.168.0.120 'source /opt/ros/humble/setup.bash && cd ~/blaybot/robot_ws && source install/setup.bash && ros2 launch start robot_launch.py'" C-m
 
+# Attach to the tmux session
 tmux attach -t launch
+
