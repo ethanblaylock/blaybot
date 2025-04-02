@@ -18,13 +18,13 @@ class VisualServoing(object):
     def __init__(self):
         self._translation_only=False
 
-        self._L=np.matlib.zeros((2*4,6))
-        self._ideal_feature=np.matlib.zeros((4*2,1))
+        self._L=np.zeros((2*4,6))
+        self._ideal_feature=np.zeros((4*2,1))
 
         self.error = 1
         # Gain on controller, essentially sets arm speed, although too high of a value will cause the
         # function to diverge.
-        self._lambda=0.1
+        self._lambda=1
 
         self._target_set=False
         
@@ -38,12 +38,10 @@ class VisualServoing(object):
         self._ideal_cam_rot = ideal_cam_rot
         if ideal_corners is not None:
             self._ideal_corners = ideal_corners
-        if self._ibvs:
-            self._eih_initialize_target_feature()
+
+        self._eih_initialize_target_feature()
         self._target_set=True
  
-    def _shutdown_hook(self):
-        pass
 
     def _eih_initialize_target_feature(self):
         """
@@ -63,7 +61,7 @@ class VisualServoing(object):
             self._L[i*2:i*2+2,:]=np.matrix([[-1/Z,0,x/Z,x*y,-(1+x*x),y],[0,-1/Z,y/Z,1+y*y,-x*y,-x]])
 
     def _calc_L(self, corners, depths):
-        L=np.matlib.zeros((2*4,6))
+        L=np.zeros((2*4,6))
         for i in range(0,4):
             x=corners[i*2]
             y=corners[i*2+1]                     

@@ -20,15 +20,13 @@ class ModeManagerNode(Node):
         self.get_logger().info("Mode is now: " + "Drive")
 
     def xbox_callback(self, msg):
-        mode_msg = Mode()
-        mode_msg.mode = self.current_mode
         if msg.xbox == 1 and self.xbox_debounce:
+            mode_msg = Mode()
             mode_msg = self.cycle_mode(mode_msg)
             self.xbox_debounce = False
         if msg.xbox == 0:
             self.xbox_debounce = True
-        self.mode_publisher.publish(mode_msg)
-      
+        
     def cycle_mode(self, mode_msg):
         if self.current_mode == Mode.DRIVE:
             mode_msg.mode = Mode.ARM
@@ -38,7 +36,8 @@ class ModeManagerNode(Node):
             mode_msg.mode = Mode.DRIVE
             self.current_mode = Mode.DRIVE
             self.get_logger().info("Mode is now: " + "Drive")
-        return mode_msg
+        self.mode_publisher.publish(mode_msg)
+      
 
 def main(args=None):
     rclpy.init(args=args)

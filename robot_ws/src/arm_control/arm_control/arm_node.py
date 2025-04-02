@@ -3,11 +3,13 @@ from rclpy.node import Node
 from rclpy.executors import ExternalShutdownException
 from robot_msgs.msg import Xbox
 from robot_msgs.msg import ArmCommand, Mode
+from tf2_msgs.msg import TFMessage
 from roboticstoolbox import DHRobot
 from mobility import parameters as p
 import numpy as np
-from apriltag_client import ApriltagClient
-from visual_servoing import VisualServoing
+
+from arm_control.visual_servoing import VisualServoing
+from arm_control.apriltag_client import ApriltagClient
 
 
 class ArmNode(Node):
@@ -19,6 +21,8 @@ class ArmNode(Node):
         self.arm_command_publisher = self.create_publisher(ArmCommand, '/arm_command', 10)
 
         self.mode_subscription = self.create_subscription(Mode, '/mode', self.mode_callback, 10)
+
+        
 
         self.arm_dh_model = DHRobot(p.dh_params, name='arm')
         self.arm_dh_model.q = p.INIT_Q
@@ -40,11 +44,28 @@ class ArmNode(Node):
 
         self.apriltag_client = ApriltagClient()
         self.visual_servoing = VisualServoing()
+
+        self.start_visual_servo = False
+
+        self.tf_subscription = self.create_subscription(TFMessage, '/tf', self.tf_callback, 10)
         
+    def tf_callback(self, msg):
+        # Get best marker for gripper pose
+        transforms = msg.transforms
+
+        # check is empty
+        if len(transforms) == 0:
+            return
+
+        self.apriltag_client.process_detection(transforms)  
+
+
     def xbox_callback(self, msg):
         if not self.arm_enable:
             return
-        
+        if self.start_visual_servo:
+            self.visual_servo()
+
         if msg.share == 1:
             self.get_logger().info('Tucking arm')
             self.move_to_joint_angles(p.TUCK_JOINT1, p.TUCK_JOINT2, p.TUCK_JOINT3, p.TUCK_JOINT4, p.TUCK_JOINT5, p.TUCK_JOINT6)
@@ -58,9 +79,11 @@ class ArmNode(Node):
             return
 
         if msg.menu == 1:
-            while True:
-                self.visual_servo()
+            self.visual_servo()
     
+        if msg.y == 1:
+            self.start_visual_servo = False
+
         if msg.a == 1 and self.speed < 3 and self.a_debounce:
             self.speed += 1
             self.a_debounce = False
@@ -190,57 +213,78 @@ class ArmNode(Node):
                 pass
 
     def visual_servo(self):
-        final_camera_depth = 0.2
+        if not self.start_visual_servo:
+            self.get_logger().info('starting servoing')
+            final_camera_depth = 3
 
-        desired_corners = self.get_target_corners(final_camera_depth, 0.0654)
+            desired_corners = self.get_target_corners(final_camera_depth, 0.05)
 
-        ideal_cam_pose = np.array([0,0,final_camera_depth])
-        self.visual_servoing.set_target(ideal_cam_pose,None,ideal_corners=desired_corners)
+            ideal_cam_pose = np.array([0,0,final_camera_depth])
+            self.visual_servoing.set_target(ideal_cam_pose,None,ideal_corners=desired_corners)
+            self.get_logger().info('target set')
+            self.start_visual_servo = True
+        
+            
+        if self.apriltag_client.corners is None:
+            # self.get_logger().info('no corners')
+            return
+        
+        marker_corners = self.apriltag_client.corners
+        if marker_corners is None:
+            self.get_logger().info('no marker corners')
+            return
+        
+        # Don't move if the target hasn't been set
+        if not self.visual_servoing._target_set:
+            self.get_logger().info('target not set')
+            return
+        # Get control law velocity and transform to body frame, then send to robot
+        twist = self.visual_servoing.get_next_vel(corners=marker_corners, depths=self.apriltag_client.depths)
+        self.apriltag_client.corners = None
+        
+        new_twist = np.zeros(6)
+        new_twist[0] = twist[1] # x is the y
+        new_twist[1] = -twist[0] # y is negative x
+        new_twist[2] = twist[2] # z is negative y
+        new_twist[3] = twist[4]
+        new_twist[4] = -twist[3]
+        new_twist[5] = twist[5]
+        twist = new_twist
+        self.get_logger().info(f'twist: {twist}')
+        transform_matrix = self.arm_dh_model.fkine(self.arm_dh_model.q)
+        rotation_matrix = transform_matrix.R
+        Z_shift = np.vstack([np.hstack([rotation_matrix, np.zeros((3,3))]), np.hstack([np.zeros((3,3)), rotation_matrix])])
+        twist = Z_shift @ twist
+        q = self.arm_dh_model.q
+        J = self.arm_dh_model.jacob0(q)
+        # J[:, 4] = J[:, 4] * 5
+        J_dagger = J.T @ np.linalg.inv(J @ J.T + p.KD**2 * np.eye(len(J)))
+        q_dot = J_dagger @ twist
+        
+        q_dot = np.clip(q_dot, -p.MAX_ARM_SPEED, p.MAX_ARM_SPEED)
+        # self.get_logger().info(f'q_dot: {q_dot}')
+        self.current_joint1 += q_dot[0]
+        self.current_joint2 += q_dot[1]
+        self.current_joint3 += q_dot[2]
+        self.current_joint4 += q_dot[3]
+        self.current_joint5 += (q_dot[4] * 10)
 
-        while True:
-            if self.apriltag_client.corners == None:
-                continue
+        self.current_joint1 = float(max(min(self.current_joint1, p.JOINT1_LIMITS[1]), p.JOINT1_LIMITS[0]))
+        self.current_joint2 = float(max(min(self.current_joint2, p.JOINT2_LIMITS[1]), p.JOINT2_LIMITS[0]))
+        self.current_joint3 = float(max(min(self.current_joint3, p.JOINT3_LIMITS[1]), p.JOINT3_LIMITS[0]))
+        self.current_joint4 = float(max(min(self.current_joint4, p.JOINT4_LIMITS[1]), p.JOINT4_LIMITS[0]))
+        self.current_joint5 = float(max(min(self.current_joint5, p.JOINT5_LIMITS[1]), p.JOINT5_LIMITS[0]))
 
-            marker_corners = self.apriltag_client.corners
-            if marker_corners is None:
-                continue
-
-            # Don't move if the target hasn't been set
-            if not self.visual_servoing._target_set:
-                continue
-            # Get control law velocity and transform to body frame, then send to robot
-            twist = self.visual_servoing.get_next_vel(corners=marker_corners, depths=self._apriltag_client.depths)
-
-            self._apriltag_client.corners = None
-
-            q = self.arm_dh_model.q
-            J = self.arm_dh_model.jacob0(q)
-            J_dagger = J.T @ np.linalg.inv(J @ J.T + p.KD**2 * np.eye(len(J)))
-            q_dot = J_dagger @ twist
-            q_dot = np.clip(q_dot, -p.MAX_ARM_SPEED, p.MAX_ARM_SPEED)
-
-            self.current_joint1 += q_dot[0]
-            self.current_joint2 += q_dot[1]
-            self.current_joint3 += q_dot[2]
-            self.current_joint4 += q_dot[3]
-            self.current_joint5 += q_dot[4]
-
-            self.current_joint1 = float(max(min(self.current_joint1, p.JOINT1_LIMITS[1]), p.JOINT1_LIMITS[0]))
-            self.current_joint2 = float(max(min(self.current_joint2, p.JOINT2_LIMITS[1]), p.JOINT2_LIMITS[0]))
-            self.current_joint3 = float(max(min(self.current_joint3, p.JOINT3_LIMITS[1]), p.JOINT3_LIMITS[0]))
-            self.current_joint4 = float(max(min(self.current_joint4, p.JOINT4_LIMITS[1]), p.JOINT4_LIMITS[0]))
-            self.current_joint5 = float(max(min(self.current_joint5, p.JOINT5_LIMITS[1]), p.JOINT5_LIMITS[0]))
-
-            self.update_dh_model()
-
-            arm_command_msg = ArmCommand()
-            arm_command_msg.joint1 = self.current_joint1
-            arm_command_msg.joint2 = self.current_joint2
-            arm_command_msg.joint3 = self.current_joint3
-            arm_command_msg.joint4 = self.current_joint4
-            arm_command_msg.joint5 = self.current_joint5
-            arm_command_msg.joint6 = self.current_joint6
-            self.arm_command_publisher.publish(arm_command_msg)
+        self.update_dh_model()
+        self.get_logger().info(f'{self.visual_servoing.error}')
+        arm_command_msg = ArmCommand()
+        arm_command_msg.joint1 = self.current_joint1
+        arm_command_msg.joint2 = self.current_joint2
+        arm_command_msg.joint3 = self.current_joint3
+        arm_command_msg.joint4 = self.current_joint4
+        arm_command_msg.joint5 = self.current_joint5
+        arm_command_msg.joint6 = self.current_joint6
+        self.arm_command_publisher.publish(arm_command_msg)
 
     def get_target_corners(self, final_camera_depth, size):
         corner = size/2

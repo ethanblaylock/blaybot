@@ -7,30 +7,21 @@ from robot_msgs.msg import ArmCommand, Mode
 from roboticstoolbox import DHRobot
 from mobility import parameters as p
 import numpy as np
+import tf_transformations as tf
 
 class ApriltagClient(object):
     
     def __init__(self):
-        self.tf_subscription = self.create_subscription(Mode, '/tf', self.process_detection, 10)
-
+        
         self.corners = None
         self.depths = None
         
 
-    def process_detection(self,apriltag_detections):
+    def process_detection(self,transforms):
         """
         Process income apriltag detections message, store pose and corners if detections were found.
         """        
-
-        # Get best marker for gripper pose
-        (my_marker,marker_pos)=self.__get_marker(apriltag_detections.detections)
-
-        if my_marker is None:
-            return
-
-        size = apriltag_detections.detections[marker_pos].size
-        
-        corners, depths = self.compute_tag_corners(apriltag_detections.detections[marker_pos].pose.pose, size)
+        corners, depths = self.compute_tag_corners(transforms[0].transform, 0.05)
         self.corners = corners
         self.depths = depths
 
@@ -56,11 +47,11 @@ class ApriltagClient(object):
         ])
         #print(tag_corners_local)
         # Convert the tag's rotation quaternion into a rotation matrix
-        q = [tag_pose.orientation.x, tag_pose.orientation.y, tag_pose.orientation.z, tag_pose.orientation.w]
-        rotation_matrix = np.quaternion_matrix(q)[:3, :3]  # 3x3 rotation matrix
+        q = [tag_pose.rotation.x, tag_pose.rotation.y, tag_pose.rotation.z, tag_pose.rotation.w]
+        rotation_matrix = tf.quaternion_matrix(q)[:3, :3]  # 3x3 rotation matrix
         
         # Tag's translation vector (position in camera frame)
-        translation = np.array([tag_pose.position.x, tag_pose.position.y, tag_pose.position.z])
+        translation = np.array([tag_pose.translation.x, tag_pose.translation.y, tag_pose.translation.z])
         
         # Compute the corners in the camera frame
         tag_corners_camera = []
