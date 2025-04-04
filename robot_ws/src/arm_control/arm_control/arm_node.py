@@ -46,6 +46,7 @@ class ArmNode(Node):
         self.visual_servoing = VisualServoing()
 
         self.start_visual_servo = False
+        self.visual_servo_ready = False
 
         self.tf_subscription = self.create_subscription(TFMessage, '/tf', self.tf_callback, 10)
         
@@ -55,8 +56,16 @@ class ArmNode(Node):
 
         # check is empty
         if len(transforms) == 0:
+            if self.visual_servo_ready and not self.start_visual_servo:
+                self.get_logger().info('Move closer to the AprilTag to Visual Servo')
+            self.visual_servo_ready = False
             return
+            
 
+        if not self.visual_servo_ready and not self.start_visual_servo:
+            self.get_logger().info('Ready to Visual Servo')
+            self.visual_servo_ready = True
+        
         self.apriltag_client.process_detection(transforms)  
 
 
@@ -68,17 +77,19 @@ class ArmNode(Node):
 
         if msg.share == 1:
             self.get_logger().info('Tucking arm')
-            self.move_to_joint_angles(p.TUCK_JOINT1, p.TUCK_JOINT2, p.TUCK_JOINT3, p.TUCK_JOINT4, p.TUCK_JOINT5, p.TUCK_JOINT6)
+            self.tuck()
             self.get_logger().info('Tucking complete')
             return
 
         if msg.view == 1:
             self.get_logger().info('Untucking arm')
-            self.move_to_joint_angles(p.INIT_JOINT1, p.INIT_JOINT2, p.INIT_JOINT3, p.INIT_JOINT4, p.INIT_JOINT5, p.INIT_JOINT6)
+            self.untuck()
             self.get_logger().info('Untucking complete')
             return
 
         if msg.menu == 1:
+            self.visual_servoing.error = 1
+            self.open_gripper()
             self.visual_servo()
     
         if msg.y == 1:
@@ -153,6 +164,17 @@ class ArmNode(Node):
             self.arm_enable = True
         else:
             self.arm_enable = False
+    def tuck(self):
+        self.move_to_joint_angles(p.TUCK_JOINT1, p.TUCK_JOINT2, p.TUCK_JOINT3, p.TUCK_JOINT4, p.TUCK_JOINT5, self.current_joint6)
+
+    def untuck(self):
+        self.move_to_joint_angles(p.INIT_JOINT1, p.INIT_JOINT2, p.INIT_JOINT3, p.INIT_JOINT4, p.INIT_JOINT5, self.current_joint6)
+
+    def open_gripper(self):
+        self.move_to_joint_angles(self.current_joint1, self.current_joint2, self.current_joint3, self.current_joint4, self.current_joint5, p.OPEN_GRIPPER)
+
+    def close_gripper(self):
+        self.move_to_joint_angles(self.current_joint1, self.current_joint2, self.current_joint3, self.current_joint4, self.current_joint5, p.CLOSE_GRIPPER)
     
     def update_dh_model(self):
         angle1 = (self.current_joint1 - 3000) / 848.826363 + 0.58905
@@ -238,6 +260,14 @@ class ArmNode(Node):
         if not self.visual_servoing._target_set:
             self.get_logger().info('target not set')
             return
+        
+        if np.linalg.norm(self.visual_servoing.error) < 0.1:
+            self.get_logger().info('target reached')
+            self.start_visual_servo = False
+            self.close_gripper()
+            self.untuck()
+            return
+        self.get_logger().info(f'error: {np.linalg.norm(self.visual_servoing.error)}')
         # Get control law velocity and transform to body frame, then send to robot
         twist = self.visual_servoing.get_next_vel(corners=marker_corners, depths=self.apriltag_client.depths)
         self.apriltag_client.corners = None
@@ -250,7 +280,7 @@ class ArmNode(Node):
         new_twist[4] = -twist[3]
         new_twist[5] = twist[5]
         twist = new_twist
-        self.get_logger().info(f'twist: {twist}')
+
         transform_matrix = self.arm_dh_model.fkine(self.arm_dh_model.q)
         rotation_matrix = transform_matrix.R
         Z_FN_to_FBase = np.vstack([np.hstack([rotation_matrix, np.zeros((3,3))]), np.hstack([np.zeros((3,3)), rotation_matrix])])
@@ -287,7 +317,6 @@ class ArmNode(Node):
         self.current_joint5 = float(max(min(self.current_joint5, p.JOINT5_LIMITS[1]), p.JOINT5_LIMITS[0]))
 
         self.update_dh_model()
-        self.get_logger().info(f'{self.visual_servoing.error}')
         arm_command_msg = ArmCommand()
         arm_command_msg.joint1 = self.current_joint1
         arm_command_msg.joint2 = self.current_joint2

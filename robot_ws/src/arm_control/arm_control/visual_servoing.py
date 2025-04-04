@@ -24,7 +24,7 @@ class VisualServoing(object):
         self.error = 1
         # Gain on controller, essentially sets arm speed, although too high of a value will cause the
         # function to diverge.
-        self._lambda=5
+        self._lambda=3
 
         self._target_set=False
         
