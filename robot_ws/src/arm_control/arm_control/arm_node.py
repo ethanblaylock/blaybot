@@ -215,9 +215,9 @@ class ArmNode(Node):
     def visual_servo(self):
         if not self.start_visual_servo:
             self.get_logger().info('starting servoing')
-            final_camera_depth = 3
+            final_camera_depth = 4
 
-            desired_corners = self.get_target_corners(final_camera_depth, 0.05)
+            desired_corners = self.get_target_corners(final_camera_depth, 0.025)
 
             ideal_cam_pose = np.array([0,0,final_camera_depth])
             self.visual_servoing.set_target(ideal_cam_pose,None,ideal_corners=desired_corners)
@@ -253,7 +253,18 @@ class ArmNode(Node):
         self.get_logger().info(f'twist: {twist}')
         transform_matrix = self.arm_dh_model.fkine(self.arm_dh_model.q)
         rotation_matrix = transform_matrix.R
-        Z_shift = np.vstack([np.hstack([rotation_matrix, np.zeros((3,3))]), np.hstack([np.zeros((3,3)), rotation_matrix])])
+        Z_FN_to_FBase = np.vstack([np.hstack([rotation_matrix, np.zeros((3,3))]), np.hstack([np.zeros((3,3)), rotation_matrix])])
+        
+        R_Cam = p.CAMERA_FRAME[0:-1, 0:-1]
+        P_Cam = p.CAMERA_FRAME[0:-1, -1]
+        skewSymMatrix = self.skew(P_Cam)
+        Z_P_FCam_to_FN = np.vstack([np.hstack([np.eye(R_Cam.shape[0]), -skewSymMatrix]), np.hstack([np.zeros((3,3)), np.eye(R_Cam.shape[0])])])
+        Z_R_FCam_to_FN = np.vstack([np.hstack([R_Cam, np.zeros((3,3))]), np.hstack([np.zeros((3,3)), R_Cam])])
+        
+        Z_FCam_to_FN = Z_P_FCam_to_FN @ Z_R_FCam_to_FN
+
+        Z_shift = Z_FN_to_FBase @ Z_FCam_to_FN
+
         twist = Z_shift @ twist
         q = self.arm_dh_model.q
         J = self.arm_dh_model.jacob0(q)
@@ -267,7 +278,7 @@ class ArmNode(Node):
         self.current_joint2 += q_dot[1]
         self.current_joint3 += q_dot[2]
         self.current_joint4 += q_dot[3]
-        self.current_joint5 += (q_dot[4] * 10)
+        self.current_joint5 += (q_dot[4])
 
         self.current_joint1 = float(max(min(self.current_joint1, p.JOINT1_LIMITS[1]), p.JOINT1_LIMITS[0]))
         self.current_joint2 = float(max(min(self.current_joint2, p.JOINT2_LIMITS[1]), p.JOINT2_LIMITS[0]))
@@ -291,6 +302,12 @@ class ArmNode(Node):
         corner = corner/final_camera_depth
         return np.array([-corner, corner, corner, corner, corner, -corner, -corner, -corner])
 
+    def skew(self, v):
+        return np.array([
+            [0., -v[2], v[1]],
+            [v[2], 0., -v[0]],
+            [-v[1], v[0], 0.]
+        ])
 def main(args=None):
     rclpy.init(args=args)
 

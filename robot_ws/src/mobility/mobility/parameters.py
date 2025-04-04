@@ -29,7 +29,7 @@ JOINT2_LIMITS = [2800, 4900]
 JOINT3_LIMITS = [1000, 4000]
 JOINT4_LIMITS = [1000, 5000]
 JOINT5_LIMITS = [1000, 5000]
-JOINT6_LIMITS = [3020, 4000]
+JOINT6_LIMITS = [2700, 4150]
 
 
 # Tuck joint angles
@@ -81,12 +81,15 @@ KD = 0.1
 #             0.     , 1211.13729,  622.62561,
 #             0.     ,    0.     ,    1.     ]
 
+
+theta = np.radians(10)  # Convert degrees to radians
 CAMERA_FRAME = np.array([
-    [1., 0., 0., 0.],
+    [np.cos(theta), 0., np.sin(theta), 0.045],
     [0., 1., 0., 0.],
-    [0., 0., 1., 0.],
+    [-np.sin(theta), 0., np.cos(theta), 0.0125],
     [0., 0., 0., 1.]
 ])
+
 if __name__ == '__main__':
     robot = DHRobot(dh_params)
     print(robot)

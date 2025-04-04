@@ -21,7 +21,7 @@ class ApriltagClient(object):
         """
         Process income apriltag detections message, store pose and corners if detections were found.
         """        
-        corners, depths = self.compute_tag_corners(transforms[0].transform, 0.05)
+        corners, depths = self.compute_tag_corners(transforms[0].transform, 0.025)
         self.corners = corners
         self.depths = depths
 
