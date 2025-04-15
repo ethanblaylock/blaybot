@@ -21,7 +21,8 @@ class ApriltagClient(object):
         """
         Process income apriltag detections message, store pose and corners if detections were found.
         """        
-        corners, depths = self.compute_tag_corners(transforms[0].transform, 0.025)
+        # corners, depths = self.compute_tag_corners(transforms[0].transform, 0.025)
+        corners, depths = self.compute_tag_corners(transforms[0].transform, 0.9843)
         self.corners = corners
         self.depths = depths
 
@@ -45,6 +46,7 @@ class ApriltagClient(object):
             [half_size, half_size, 0],    # corner 2 (bottom-right)
             [-half_size, half_size, 0],   # corner 3 (bottom-left)
         ])
+        # print(tag_pose)
         #print(tag_corners_local)
         # Convert the tag's rotation quaternion into a rotation matrix
         q = [tag_pose.rotation.x, tag_pose.rotation.y, tag_pose.rotation.z, tag_pose.rotation.w]

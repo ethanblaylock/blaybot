@@ -95,6 +95,8 @@ class ArmNode(Node):
         if msg.y == 1:
             self.start_visual_servo = False
 
+
+
         if msg.a == 1 and self.speed < 3 and self.a_debounce:
             self.speed += 1
             self.a_debounce = False
@@ -118,9 +120,9 @@ class ArmNode(Node):
             self.current_joint5 -= msg.l_trigger*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
 
         if msg.r_bumper > 0:
-            self.current_joint6 += msg.r_bumper*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
+            self.current_joint6 += 5*msg.r_bumper*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
         elif msg.l_bumper > 0:
-            self.current_joint6 -= msg.l_bumper*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
+            self.current_joint6 -= 5*msg.l_bumper*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
 
         des_x_vel_ik = msg.l_stick_ud*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
         des_y_vel_ik = msg.l_stick_lr*p.MAX_ARM_SPEED*p.ARM_SPEEDS[self.speed]
@@ -175,6 +177,35 @@ class ArmNode(Node):
 
     def close_gripper(self):
         self.move_to_joint_angles(self.current_joint1, self.current_joint2, self.current_joint3, self.current_joint4, self.current_joint5, p.CLOSE_GRIPPER)
+    
+    def go_forward(self, distance):
+        des_ee_twist = np.array([distance, 0, 0, 0, 0, 0])
+        q = self.arm_dh_model.q
+        J = self.arm_dh_model.jacob0(q)
+        J_dagger = J.T @ np.linalg.inv(J @ J.T + p.KD**2 * np.eye(len(J)))
+        q_dot = J_dagger @ des_ee_twist
+        q_dot = np.clip(q_dot, -p.MAX_ARM_SPEED, p.MAX_ARM_SPEED)
+        self.current_joint1 += q_dot[0]
+        self.current_joint2 += q_dot[1]
+        self.current_joint3 += q_dot[2]
+        self.current_joint4 += q_dot[3]
+        self.current_joint5 += q_dot[4]
+        # Limit joint angles
+        self.current_joint1 = float(max(min(self.current_joint1, p.JOINT1_LIMITS[1]), p.JOINT1_LIMITS[0]))
+        self.current_joint2 = float(max(min(self.current_joint2, p.JOINT2_LIMITS[1]), p.JOINT2_LIMITS[0]))
+        self.current_joint3 = float(max(min(self.current_joint3, p.JOINT3_LIMITS[1]), p.JOINT3_LIMITS[0]))
+        self.current_joint4 = float(max(min(self.current_joint4, p.JOINT4_LIMITS[1]), p.JOINT4_LIMITS[0]))
+        self.current_joint5 = float(max(min(self.current_joint5, p.JOINT5_LIMITS[1]), p.JOINT5_LIMITS[0]))
+        self.current_joint6 = float(max(min(self.current_joint6, p.JOINT6_LIMITS[1]), p.JOINT6_LIMITS[0]))
+
+        # self.move_to_joint_angles(q_dot[0], q_dot[1], q_dot[2], q_dot[3], q_dot[4], self.current_joint6)
+        self.update_dh_model()
+        self.move_to_joint_angles(self.current_joint1, self.current_joint2, self.current_joint3, self.current_joint4, self.current_joint5, self.current_joint6)
+
+    def do_again(self, times, speed):
+        for _ in range(times):
+            self.go_forward(speed)
+
     
     def update_dh_model(self):
         angle1 = (self.current_joint1 - 3000) / 848.826363 + 0.58905
@@ -237,9 +268,9 @@ class ArmNode(Node):
     def visual_servo(self):
         if not self.start_visual_servo:
             self.get_logger().info('starting servoing')
-            final_camera_depth = 4
+            final_camera_depth = 3
 
-            desired_corners = self.get_target_corners(final_camera_depth, 0.025)
+            desired_corners = self.get_target_corners(final_camera_depth, 0.9843)
 
             ideal_cam_pose = np.array([0,0,final_camera_depth])
             self.visual_servoing.set_target(ideal_cam_pose,None,ideal_corners=desired_corners)
@@ -261,13 +292,15 @@ class ArmNode(Node):
             self.get_logger().info('target not set')
             return
         
-        if np.linalg.norm(self.visual_servoing.error) < 0.1:
+        if np.linalg.norm(self.visual_servoing.error) < 0.35 and abs(np.mean(self.apriltag_client.depths) - 3) < 0.5:
             self.get_logger().info('target reached')
             self.start_visual_servo = False
+            self.do_again(500, 0.1)
             self.close_gripper()
             self.untuck()
             return
         self.get_logger().info(f'error: {np.linalg.norm(self.visual_servoing.error)}')
+        self.get_logger().info(f'depth: {np.mean(self.apriltag_client.depths) - 3}')
         # Get control law velocity and transform to body frame, then send to robot
         twist = self.visual_servoing.get_next_vel(corners=marker_corners, depths=self.apriltag_client.depths)
         self.apriltag_client.corners = None
@@ -308,7 +341,7 @@ class ArmNode(Node):
         self.current_joint2 += q_dot[1]
         self.current_joint3 += q_dot[2]
         self.current_joint4 += q_dot[3]
-        self.current_joint5 += (q_dot[4])
+        self.current_joint5 += (q_dot[4]*2)
 
         self.current_joint1 = float(max(min(self.current_joint1, p.JOINT1_LIMITS[1]), p.JOINT1_LIMITS[0]))
         self.current_joint2 = float(max(min(self.current_joint2, p.JOINT2_LIMITS[1]), p.JOINT2_LIMITS[0]))
@@ -330,6 +363,7 @@ class ArmNode(Node):
         corner = size/2
         corner = corner/final_camera_depth
         return np.array([-corner, corner, corner, corner, corner, -corner, -corner, -corner])
+        # return np.array([-corner, corner*2, corner, corner*2, corner, 0, -corner, 0])
 
     def skew(self, v):
         return np.array([

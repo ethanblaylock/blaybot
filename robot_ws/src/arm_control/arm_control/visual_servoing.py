@@ -6,7 +6,7 @@ although eye to hand (eth) methods are easily applied by applying the transforma
 the camera (eye) to the hand to the velocity twist vector.
 """
 import numpy as np
-
+from mobility import parameters as p
 
 class VisualServoing(object):
     """
@@ -85,6 +85,7 @@ class VisualServoing(object):
         error = target_feature - self._ideal_feature
         
         self.error = error
-        vel=-self._lambda*np.matmul(np.linalg.pinv(L + self._L)/2,self.error)
-
+        new_L = L + self._L
+        vel=-self._lambda*np.matmul((np.linalg.inv(new_L.T @ new_L)@new_L.T)/2,self.error)
+        
         return vel
